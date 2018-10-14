@@ -41,7 +41,7 @@ def parse_session(line):
     """Parse H4 line into session."""
     if not line.startswith("H4"):
         raise ValueError("Not H4 line for session parser!")
-    return {
+    res = {
         "data" : None,
         "start" : datetime(
             year = int(line[6:10]),
@@ -51,14 +51,6 @@ def parse_session(line):
             minute = int(line[20:22]),
             second = int(line[23:25])
         ),
-        "end" : datetime(
-            year = int(line[26:30]),
-            month = int(line[31:33]),
-            day = int(line[34:36]),
-            hour = int(line[37:39]),
-            minute = int(line[40:42]),
-            second = int(line[43:45])
-        ),
         "troposphere_corrected" :  int(line[49]),
         "CoM_corrected" : int(line[51]),
         "receive_amplitude_corrected" : int(line[53]),
@@ -67,6 +59,21 @@ def parse_session(line):
         "range_type" : int(line[59]),
         "data_quality" : int(line[61])
     }
+    try:
+        # end time is not required by CRD format. If not set
+        # all values should be set to -1 
+        res["end"] = datetime(
+            year = int(line[26:30]),
+            month = int(line[31:33]),
+            day = int(line[34:36]),
+            hour = int(line[37:39]),
+            minute = int(line[40:42]),
+            second = int(line[43:45])
+        )
+    except ValueError:
+        # use NaN to represent not available
+        res['end'] = np.nan
+    return res
 
 
 def parse_station(line):
