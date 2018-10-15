@@ -18,7 +18,9 @@ from datetime import datetime
 # Also type 50 (pass statistics) can appear.
 # The time series stuff should go in a Pandas dataframe?
 
-
+# References:
+# https://edc.dgfi.tum.de/en/oc/crd/
+# https://ilrs.cddis.eosdis.nasa.gov/docs/2009/crd_v1.01.pdf
 
 def parse_unit(line):
     """Parse a H1 line into a unit dict."""
@@ -106,7 +108,6 @@ def parse_target(line):
 def parse_configuration_0( line ):
     """
     parse the C0 configuration line
-    
     these lines may be repeated
     """
     
@@ -150,6 +151,12 @@ def parse_configuration_0( line ):
     return res
 
 def parse_laser_configuration( line ):
+    """
+    parse the laser configuration line
+
+    there may be more than one line if e.g. two-color ranging
+    is being used
+    """
 
     if not line.startswith("C1"):
         raise ValueError('Not C1 line for configuration')
@@ -279,12 +286,27 @@ def parse_transponder_configuration( line ):
         'spacecraft_time_simplified' : spacecraft_time_simplified
         }
     return res
-    
+
+class ConfigRecord( dict ):
+    """
+    handles the config records as a dictionary of lists of dictionaries
+    """
+
+    def __init__( self, *args, **kwargs ):
+
+        self[ 'system_config' ] = []
+        self[ 'laser_config' ] = []
+        self[ 'detector_config' ] = []
+        self[ 'timing_config' ] = []
+        self[ 'transponder_config' ] = []
+        
+        dict.__init__(self)
+   
 def parse_CRD(data):
     active_unit = None
     active_session = None
     active_data = []
-    active_cal = []
+    active_config = None
     units = []
     for line in data.split("\n"):
         line = line.upper()
@@ -294,19 +316,23 @@ def parse_CRD(data):
             # Start of unit.
             active_unit = parse_unit(line)
             units.append(active_unit)
+            
         if line.startswith("H9"):
             # End of unit.
             active_unit = None
+            
         if line.startswith("H4"):
             # Start of session, add new session to active unit.
             active_session = parse_session(line)
             active_unit["sessions"].append(active_session)
+            
         if line.startswith("H8"):
             # End of session, convert active_data into array and save to
             # active session.
             active_session["data"] = np.array(active_data)
             active_data = []
             active_session = None
+            
         if line.startswith("H2"):
             # Station definition, add station to active session, 
             # or to active unit if no active session.
@@ -314,6 +340,7 @@ def parse_CRD(data):
                 active_unit["station"] = parse_station(line)
             else:
                 active_session["station"] = parse_station(line)
+                
         if line.startswith("H3"):
             # Target definition, add new target to active session, 
             # or to active unit if no active session.
@@ -322,21 +349,26 @@ def parse_CRD(data):
             else:
                 active_session["target"] = parse_target(line)
 
+        # configuration records can belong to either the session
+        # or the unit
         if line.startswith("C0"):
             # configuration line 0
-            active_cal_0 = parse_configuration_0( line )
+            system_config = parse_configuration_0( line )
+            if not active_cal:
+                active_cal = ConfigRecord()
+            active_cal['system_config'].append( system_config )
 
         if line.startswith("C1"):
             # configuration line 1
-            active_laser_cal = parse_laser_configuration( line ) 
+            laser_config = parse_laser_configuration( line ) 
 
         if line.startswith("C2"):
             # configuration line 2
-            active_detector_cal = parse_detector_configuration( line ) 
+            detector_config = parse_detector_configuration( line ) 
 
         if line.startswith("C3"):
             # configuration line 3
-            active_timing_cal = parse_timing_system_configuration( line ) 
+            timing_config = parse_timing_system_configuration( line ) 
             
         if line.startswith("10"):
             # Data point, add to active_data.
