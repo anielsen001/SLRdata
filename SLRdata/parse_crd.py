@@ -101,13 +101,195 @@ def parse_target(line):
         "type" : int(line[39])
     }
 
+# the configuration lines are free format. White space parsing
+# is required
+def parse_configuration_0( line ):
+    """
+    parse the C0 configuration line
+    
+    these lines may be repeated
+    """
+    
+    if not line.startswith("C0"):
+        raise ValueError('Not C0 line for configuration')
+    
+    # parse the line by splitting
+    parts = line.split()
+
+    record_type = parts[0]
+    detail_type = int( parts[1] )
+    transmit_wavelength_nm = float( parts[2] )
+
+    # these may not all be present
+    try:
+        component_a_config_id = parts[3]
+    except IndexError:
+        component_a_config_id = np.nan
+    try:
+        component_b_config_id = parts[4]
+    except IndexError:
+        component_b_config_id = np.nan
+    try:
+        component_c_config_id = parts[5]
+    except IndexError:
+        component_c_config_id = np.nan
+    try:
+        component_d_config_id = parts[6]
+    except IndexError:
+        component_d_config_id = np.nan
+                
+    res = { 'record_type' : record_type,
+             'detail_type' : detail_type,
+             'transmit_wavelength_nm' : transmit_wavelength_nm,
+             'component_a_config_id' : component_a_config_id,
+             'component_b_config_id' : component_b_config_id,
+             'component_c_config_id' : component_c_config_id,
+             'component_d_config_id' : component_d_config_id
+             }
+    
+    return res
+
+def parse_laser_configuration( line ):
+
+    if not line.startswith("C1"):
+        raise ValueError('Not C1 line for configuration')
+    
+    parts = line.split()
+
+    record_type = parts[0]
+    detail_type = int( parts[1] )
+    laser_config_id = parts[2]
+    laser_type = parts[3]
+    primary_wavelength_nm = float( parts[4] )
+    nominal_fire_rate_hz = float( parts[5] )
+    pulse_energy_mj = float( parts[6] )       # should be updated when changes by 10%
+    pulse_width_ps = float( parts[7] )        # should be updated when changes by 10%
+    beam_divergence_arcsec = float( parts[8] )
+    num_pulses_in_semitrain = int( parts[9] )
+
+    res = { 'record_type' : record_type,
+            'detail_type' : detail_type,
+            'laser_config_id' : laser_config_id,
+            'laser_type' : laser_type,
+            'primary_wavelength_nm' : primary_wavelength_nm,
+            'nominal_fire_rate_hz' : nominal_fire_rate_hz,
+            'pulse_energy_mj' : pulse_energy_mj,
+            'pulse_width_ps' : pulse_width_ps,
+            'beam_divergence_arcsec' : beam_divergence_arcsec,
+            'num_pulses_in_semitrain' : num_pulses_in_semitrain
+            }
+    return res
+
+def parse_detector_configuration( line ):
+    if not line.startswith("C2"):
+        raise ValueError('Not C2 line for configuration')
+    
+    parts = line.split()
+
+    record_type = parts[0]
+    detail_type = int( parts[1] )
+    detector_config_id = parts[2]
+    detector_type = parts[3]
+    applicable_wavelength_nm = float( parts[4] )
+    quantum_efficiency = float( parts[5] )
+    applied_voltage = float( parts[6] )
+    dark_count_khz = float( parts[7] )
+    output_pulse_type = parts[8]
+    output_pulse_width = float( parts[9] )
+    spectral_filter_nm = float( parts[10] )
+    trans_percent_spectral_filter = float( parts[11] )
+    spatial_filter_arcsec = float( parts[12] )
+    ext_signal_proc = parts[13]
+
+    res = { 'record_type' : record_type,
+            'detail_type' : detail_type,
+            'detector_config_id' : detector_config_id,
+            'detector_type' : detector_type,
+            'applicable_wavelength_nm' : applicable_wavelength_nm,
+            'quantum_efficiency' : quantum_efficiency,
+            'applied_voltage' : applied_voltage,
+            'dark_count_khz' : dark_count_khz,
+            'output_pulse_type' : output_pulse_type,
+            'output_pulse_width' : output_pulse_width,
+            'spectral_filter_nm' : spectral_filter_nm,
+            'trans_percent_spectral_filter' : trans_percent_spectral_filter,
+            'spatial_filter_arcsec' : spatial_filter_arcsec,
+            'ext_signal_proc' : ext_signal_proc
+            }
+    
+    return res
+
+def parse_timing_system_configuration( line ):
+    if not line.startswith("C3"):
+        raise ValueError('Not C3 line for configuration')
+    
+    parts = line.split()
+
+    record_type = parts[0]
+    detail_type = int( parts[1] )
+    timing_system_config_id = parts[2]
+    time_source = parts[3]
+    frequency_source = parts[4]
+    timer = parts[5]
+    timer_serial_number = parts[6]
+    epoch_delay_correction_us = float( parts[7] )
+
+    res = {
+        'record_type' : record_type,
+        'detail_type' : detail_type,
+        'timing_system_config_id' : timing_system_config_id,
+        'time_source' : time_source,
+        'frequency_source' : frequency_source,
+        'timer' : timer,
+        'timer_serial_number' : timer_serial_number,
+        'epoch_delay_correction_us' : epoch_delay_correction_us
+        }
+    
+    return res
+
+def parse_transponder_configuration( line ):
+    if not line.startswith("C4"):
+        raise ValueError('Not C4 line for configuration')
+    
+    parts = line.split()
+ 
+    record_type = parts[0]
+    detail_type = int( parts[1] )
+    transponder_config_id = parts[2]
+    estimated_station_utc_offset_ns = float( parts[3] )
+    estimated_station_osc_drift = float( parts[4] )
+    estimated_transponder_utc_offset_ns = float( parts[5] )
+    estimated_transponder_osc_drift = float( parts[6] )
+    transponder_clock_ref_time = float( parts[7] )
+    station_clock_correction_applied = int( parts[8] )
+    spacecraft_clock_correction_applied = int( parts[9] )
+    spacecraft_time_simplified = int( parts[10] )
+
+    res = {
+        'record_type' : record_type,
+        'detail_type' : detail_type,
+        'transponder_config_id' : transponder_config_id,
+        'estimated_station_utc_offset_ns' : estimated_station_utc_offset_ns,
+        'estimated_station_osc_drift' : estimated_station_osc_drift,
+        'estimated_transponder_utc_offset_ns' : estimated_transponder_utc_offset_ns,
+        'estimated_transponder_osc_drift' : estimated_transponder_osc_drift,
+        'transponder_clock_ref_time' : transponder_clock_ref_time,
+        'station_clock_correction_applied' : station_clock_correction_applied,
+        'spacecraft_clock_correction_applied' : spacecraft_clock_correction_applied,
+        'spacecraft_time_simplified' : spacecraft_time_simplified
+        }
+    return res
+    
 def parse_CRD(data):
     active_unit = None
     active_session = None
     active_data = []
+    active_cal = []
     units = []
     for line in data.split("\n"):
         line = line.upper()
+
+        # the H lines are header line
         if line.startswith("H1"):
             # Start of unit.
             active_unit = parse_unit(line)
@@ -139,6 +321,23 @@ def parse_CRD(data):
                 active_unit["target"] = parse_target(line)
             else:
                 active_session["target"] = parse_target(line)
+
+        if line.startswith("C0"):
+            # configuration line 0
+            active_cal_0 = parse_configuration_0( line )
+
+        if line.startswith("C1"):
+            # configuration line 1
+            active_laser_cal = parse_laser_configuration( line ) 
+
+        if line.startswith("C2"):
+            # configuration line 2
+            active_detector_cal = parse_detector_configuration( line ) 
+
+        if line.startswith("C3"):
+            # configuration line 3
+            active_timing_cal = parse_timing_system_configuration( line ) 
+            
         if line.startswith("10"):
             # Data point, add to active_data.
             sline = line.split()
