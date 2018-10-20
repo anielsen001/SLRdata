@@ -18,7 +18,17 @@ from datetime import datetime
 # Also type 50 (pass statistics) can appear.
 # The time series stuff should go in a Pandas dataframe?
 
-
+def _int( x ):
+    """
+    string in this code are cast using "int", but in come cases a
+    valid string may be left empty and no number is required. In this
+    case, return a nan, otherwise raise the error
+    """
+    try:
+        return int( x )
+    except ValueError:
+        if len( x.strip() ) > 0 : raise
+        else: return np.nan
 
 def parse_unit(line):
     """Parse a H1 line into a unit dict."""
@@ -96,7 +106,7 @@ def parse_target(line):
         "name" : line[3:13].strip(),
         "ID" : int(line[14:22]),
         "SIC" : int(line[23:27]),
-        "NORAD" : int(line[28:36]),
+        "NORAD" : _int(line[28:36]),
         "timescale" : int(line[37:38]),
         "type" : int(line[39])
     }
