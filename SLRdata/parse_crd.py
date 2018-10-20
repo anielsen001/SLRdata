@@ -24,6 +24,18 @@ from datetime import datetime
 # https://edc.dgfi.tum.de/en/oc/crd/
 # https://ilrs.cddis.eosdis.nasa.gov/docs/2009/crd_v1.01.pdf
 
+def _int( x ):
+    """
+    string in this code are cast using "int", but in come cases a
+    valid string may be left empty and no number is required. In this
+    case, return a nan, otherwise raise the error
+    """
+    try:
+        return int( x )
+    except ValueError:
+        if len( x.strip() ) > 0 : raise
+        else: return np.nan
+
 config_types = { '0': 'system',
                  '1': 'laser',
                  '2': 'detector',
@@ -106,7 +118,7 @@ def parse_target(line):
         "name" : line[3:13].strip(),
         "ID" : int(line[14:22]),
         "SIC" : int(line[23:27]),
-        "NORAD" : int(line[28:36]),
+        "NORAD" : _int(line[28:36]),
         "timescale" : int(line[37:38]),
         "type" : int(line[39])
     }
