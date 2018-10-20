@@ -222,13 +222,13 @@ def parse_detector_configuration( line ):
     detector_type = parts[3]
     applicable_wavelength_nm = float( parts[4] )
     quantum_efficiency = float( parts[5] )
-    applied_voltage = float( parts[6] )
-    dark_count_khz = float( parts[7] )
+    applied_voltage = np.nan if parts[6].lower() == 'unknown' else float( parts[6] )
+    dark_count_khz = np.nan if parts[7].lower() == 'unknown' else float( parts[7] )
     output_pulse_type = parts[8]
-    output_pulse_width = float( parts[9] )
+    output_pulse_width = np.nan if parts[9].lower() == 'unknown' else float( parts[9] )
     spectral_filter_nm = float( parts[10] )
     trans_percent_spectral_filter = float( parts[11] )
-    spatial_filter_arcsec = float( parts[12] )
+    spatial_filter_arcsec = np.nan if parts[12].lower() == 'unknown' else float( parts[12] )
     ext_signal_proc = parts[13]
 
     res = { 'record_type' : record_type,
