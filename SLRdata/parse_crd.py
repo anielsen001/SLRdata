@@ -1,6 +1,13 @@
 from __future__ import print_function
 
+import sys
+if sys.version_info[0] < 3: 
+    from StringIO import StringIO
+else:
+    from io import StringIO
+
 import numpy as np
+import pandas as pd
 from datetime import datetime
 
 # CRD file parser
@@ -399,8 +406,82 @@ class ConfigRecord( object ):
             raise ValueError( component_config[ comp_id_var ] +
                               ' did not match any components in ' +
                               self.system_config_id )
+
+class DataError(Exception):
+    pass
         
-   
+class Data(object):
+    """
+    Data is a generic class to hold sampled data. 
+    This will include the engineering, normal point and meterological 
+    data
+
+    The object should be used in a read mode, parse mode and then
+    access mode.
+    """
+    # line start code
+    line_start_code = ''
+
+    # this is a list of the field names for this data type
+    field_names = []
+    
+    # this will be a large string of text parsed from each
+    # record in the file, until they are all accumulated and
+    # ready to parse into a data frame
+    _lines = ''
+
+    # load each line, after loading each line it fill be put
+    # into a pandas data frame
+    _df = None
+
+    def __init__(self):
+
+        # create the first line in _lines to be the header
+        header_line = ' '.join( self.field_names ) + '\n'
+        self._lines += header_line + '\n'
+
+    def add_line(self,line):
+        """ get the line of data add concatenate to _lines """
+        # on read, the lines are split with '\n' so add it back
+        # here
+        if not line.startswith(self.line_start_code):
+            raise DataError('wrong line type passed' )
+        self._lines += line + '\n'
+
+    def parse(self):
+        """ parse the collected data into a pandas data frame """
+        self._df = pd.read_csv( StringIO(self._lines), delim_whitespace=True )
+
+
+
+        
+class NormalPoint(Data):
+    line_start_code = '11'    
+    field_names = ['record_type',
+                   'seconds_of_day',
+                   'time_of_flight',
+                   'system_config_id',
+                   'epoch_event',
+                   'nomal_point_window_length',
+                   'number_raw_ranges',
+                   'bin_rms',
+                   'bin_skew',
+                   'bin_kurtosis',
+                   'bin_peak',
+                   'return_rate',
+                   'detector_channel']
+
+        
+class MeteorologicalData(Data):
+    line_start_code = '20'
+    field_names = ['record_type',
+                   'seconds_of_day',
+                   'surface_pressure_mbar',
+                   'surface_temperature_kelvin',
+                   'relative_humidity_percent',
+                   'origin_of_values' ]
+    
+        
 def parse_CRD(data):
     active_unit = None
     active_session = None
@@ -506,12 +587,23 @@ def parse_CRD(data):
                 ac.add_component( linetype, comp_config )            
             
         elif line.startswith("10"):
+            # full-rate/engineering/quicklook data
             # Data point, add to active_data.
             sline = line.split()
             t = float(sline[1])
             r = float(sline[2])
             active_data.append([t, r])
             parsing_config = False
+
+        elif line.startswith('11'):
+            # normal point data
+            pass
+            
+        elif line.startswith('20'):
+            pass
+
+        elif line.startswith('21'):
+            pass
             
         else:
             # there are other types of lines that are not handled,
