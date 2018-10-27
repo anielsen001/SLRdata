@@ -495,7 +495,10 @@ class MeteorologicalSupplementData(Data):
                    'atmospheric_seeing',
                    'cloud_cover_percent' ]
                    
-    
+
+class CrdError(Exception):
+    """ Error class for CRD files """
+    pass
         
 def parse_CRD(data):
     active_unit = None
@@ -513,8 +516,16 @@ def parse_CRD(data):
     session_config = False
     parsing_config = False  # assume all the config lines are sequential (??)
     active_conf = None      # this is the active configuraiton object
+
+    # the file must end with an h9 line, set to true when found
+    h9_found = False
     
     for line in data.split("\n"):
+        
+        if h9_found and len(line)>0:
+            # there may be an empty line at the end
+            raise CrdError('H9 EOF marker found, but more data remains')
+        
         line = line.upper()
 
         # if we have been parsing a config section, need to determine
@@ -539,7 +550,9 @@ def parse_CRD(data):
             parsing_config = False
             
         elif line.startswith("H9"):
-            # End of unit.
+            # End of file - there should be no more lines,
+            # if this is not found there may be an issue with the file
+            h9_found = True
             active_unit = None
             parsing_config = False
             
@@ -652,6 +665,9 @@ def parse_CRD(data):
             # there are other types of lines that are not handled,
             # handle those if we encounter them.
             parsing_config = False
+
+    if not h9_found:
+        raise CrdError('file must end with H9 line and it was not found, corrupt?')
             
     return units
         
