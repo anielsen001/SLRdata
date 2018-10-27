@@ -6,6 +6,7 @@ if sys.version_info[0] < 3:
 else:
     from io import StringIO
 
+from collections import defaultdict
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -406,6 +407,10 @@ class ConfigRecord( object ):
             raise ValueError( component_config[ comp_id_var ] +
                               ' did not match any components in ' +
                               self.system_config_id )
+
+    def __getitem__( self, item ):
+        # allow access to attributes with square brackets
+        return self.__dict__[item]
 
 class DataError(Exception):
     pass
