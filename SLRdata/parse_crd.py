@@ -452,10 +452,12 @@ class Data(object):
         """ parse the collected data into a pandas data frame """
         self._df = pd.read_csv( StringIO(self._lines), delim_whitespace=True )
 
-
+    def __getitem__( self, item ):
+        """ extract collected data """
+        return self._df[item]
 
         
-class NormalPoint(Data):
+class NormalPointData(Data):
     line_start_code = '11'    
     field_names = ['record_type',
                    'seconds_of_day',
@@ -480,12 +482,28 @@ class MeteorologicalData(Data):
                    'surface_temperature_kelvin',
                    'relative_humidity_percent',
                    'origin_of_values' ]
+
+class MeteorologicalSupplementData(Data):
+    line_start_code = '21'
+    field_names = ['record_type',
+                   'seconds_of_day',
+                   'wind_speed_mps',
+                   'wind_direction_az_deg',
+                   'precipitation_type',
+                   'visibility_km',
+                   'sky_clarity',
+                   'atmospheric_seeing',
+                   'cloud_cover_percent' ]
+                   
     
         
 def parse_CRD(data):
     active_unit = None
     active_session = None
     active_data = []
+    active_npt_data = None
+    active_met_data = None
+    active_met_supp_data = None
     units = []
 
     # track the configuration status
@@ -536,6 +554,22 @@ def parse_CRD(data):
             # active session.
             active_session["data"] = np.array(active_data)
             active_data = []
+            
+            active_session['npt'] = active_npt_data
+            if active_session['npt']:
+                active_session['npt'].parse()
+            active_npt_data = None
+    
+            active_session['met'] = active_met_data
+            if active_session['met']:
+                active_session['met'].parse()
+            active_met_data = None
+            
+            active_session['met_supp'] = active_met_supp_data
+            if active_session['met_supp']:
+                active_session['met_supp'].parse()
+            active_met_supp_data = None
+
             active_session = None
             parsing_config = False
             
@@ -597,13 +631,22 @@ def parse_CRD(data):
 
         elif line.startswith('11'):
             # normal point data
-            pass
+            if not active_npt_data:
+                active_npt_data = NormalPointData()
+            active_npt_data.add_line(line)
+            parsing_config = False
             
         elif line.startswith('20'):
-            pass
+            if not active_met_data:
+               active_met_data = MeteorologicalData()
+            active_met_data.add_line(line)            
+            parsing_config = False
 
         elif line.startswith('21'):
-            pass
+            if not active_met_supp_data:
+                active_met_supp_data = MeteorologicalSupplementData()
+            active_met_supp_data.add_line(line)            
+            parsing_config = False
             
         else:
             # there are other types of lines that are not handled,
