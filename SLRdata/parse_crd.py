@@ -379,6 +379,9 @@ class ConfigRecord( object ):
         
         # no return value
 
+    def __str__( self ):
+        return f'Id: {self.system_config_id}, wavelength: {self.laser_wavelength_nm}'
+
     def add_component( self, component, component_config ):
         """
         add a component configuration to the system configuration
