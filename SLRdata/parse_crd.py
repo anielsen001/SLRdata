@@ -50,6 +50,25 @@ config_types = { '0': 'system',
                  '3': 'timing',
                  '4': 'transponder' }
 
+def sam_to_timedelta( sam ):
+    """
+    convert a time in seconds after midnight to a pandas
+    Timedelta 
+    """
+    td = pd.Timedelta( seconds = int( sam ),
+                       nanoseconds = int( ( sam - int( sam ) )*1e9 ) )
+    return td
+
+def sam_to_timestamp( sam, date = None ):
+    """
+    convert a time in seconds after midnight to a pandas 
+    Timestamp
+    """
+    if date:
+        return pd.Timestamp( date ) + sam_to_timedelta( sam )
+    else:
+        return sam_to_timedelta( sam )
+
 def parse_unit(line):
     """Parse a H1 line into a unit dict."""
     if not line.startswith("H1"):
@@ -456,10 +475,24 @@ class Data(object):
             raise DataError('wrong line type passed' )
         self._lines += line + '\n'
 
-    def parse(self):
+    def parse(self, date = None):
         """ parse the collected data into a pandas data frame """
-        self._df = pd.read_csv( StringIO(self._lines), delim_whitespace=True )
+        df = pd.read_csv( StringIO(self._lines), delim_whitespace=True )
 
+        # need to check for midnight rollover of seconds_of_day
+        wrapIdxs = df.index[ df['seconds_of_day'].diff() < 0 ]  # identify all jumps - this is a list
+
+        for wrapIdx in wrapIdxs:
+            df.loc[ df.index >= wrapIdxs[0], 'seconds_of_day'] += 86400 
+        
+        if date:
+            # date should be a datetime or pandas.Timestamp object
+            df['timestamp'] = df[ 'seconds_of_day' ].apply( sam_to_timedelta ) + pd.Timestamp(date) 
+        
+        df = df.set_index('timestamp')
+
+        self._df = df
+            
     def __getitem__( self, item ):
         """ extract collected data """
         return self._df[item]
@@ -578,17 +611,17 @@ def parse_CRD(data):
             
             active_session['npt'] = active_npt_data
             if active_session['npt']:
-                active_session['npt'].parse()
+                active_session['npt'].parse( date = active_session['start'].date() )
             active_npt_data = None
     
             active_session['met'] = active_met_data
             if active_session['met']:
-                active_session['met'].parse()
+                active_session['met'].parse( date = active_session['start'].date() )
             active_met_data = None
             
             active_session['met_supp'] = active_met_supp_data
             if active_session['met_supp']:
-                active_session['met_supp'].parse()
+                active_session['met_supp'].parse( date = active_session['start'].date() )
             active_met_supp_data = None
 
             active_session = None
