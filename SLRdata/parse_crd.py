@@ -497,7 +497,18 @@ class Data(object):
         """ extract collected data """
         return self._df[item]
 
-        
+class FullRateData( Data ):
+    line_start_code = '10'
+    field_names = ['record_type',
+                   'seconds_of_day',
+                   'time_of_flight',
+                   'system_config_id',
+                   'epoch_event',
+                   'filter_flag',
+                   'detector_channel',
+                   'stop_number',
+                   'receive_amplitude' ]
+    
 class NormalPointData(Data):
     line_start_code = '11'    
     field_names = ['record_type',
@@ -513,7 +524,6 @@ class NormalPointData(Data):
                    'bin_peak',
                    'return_rate',
                    'detector_channel']
-
         
 class MeteorologicalData(Data):
     line_start_code = '20'
@@ -544,7 +554,7 @@ class CrdError(Exception):
 def parse_CRD(data):
     active_unit = None
     active_session = None
-    active_data = []
+    active_frd_data = None
     active_npt_data = None
     active_met_data = None
     active_met_supp_data = None
@@ -606,8 +616,10 @@ def parse_CRD(data):
         elif line.startswith("H8"):
             # End of session, convert active_data into array and save to
             # active session.
-            active_session["data"] = np.array(active_data)
-            active_data = []
+            active_session['frd'] = active_frd_data
+            if active_session['frd']:
+                active_session['frd'].parse( date = active_session['start'].date() )
+            active_frd_data = None
             
             active_session['npt'] = active_npt_data
             if active_session['npt']:
@@ -677,10 +689,9 @@ def parse_CRD(data):
         elif line.startswith("10"):
             # full-rate/engineering/quicklook data
             # Data point, add to active_data.
-            sline = line.split()
-            t = float(sline[1])
-            r = float(sline[2])
-            active_data.append([t, r])
+            if not active_frd_data:
+                active_frd_data = FullRateData()
+            active_frd_data.add_line(line)            
             parsing_config = False
 
         elif line.startswith('11'):
