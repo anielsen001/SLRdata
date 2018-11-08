@@ -516,7 +516,7 @@ class NormalPointData(Data):
                    'time_of_flight',
                    'system_config_id',
                    'epoch_event',
-                   'nomal_point_window_length',
+                   'normal_point_window_length',
                    'number_raw_ranges',
                    'bin_rms',
                    'bin_skew',
