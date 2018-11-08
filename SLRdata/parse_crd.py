@@ -432,7 +432,10 @@ class ConfigRecord( object ):
 
     def __getitem__( self, item ):
         # allow access to attributes with square brackets
-        return self.__dict__[item]
+        if self.__dict__[item] is None:
+            return defaultdict( lambda: np.nan )
+        else:
+            return self.__dict__[item]
 
 class DataError(Exception):
     pass
